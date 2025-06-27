@@ -10,7 +10,7 @@ import { authMiddleware } from "./middleware/authMiddleware.js";
 import cookieParser from "cookie-parser";
 import { createSale } from "./controllers/salesController.js";
 import stripe from "stripe";
-
+import { sendBillEmail } from "./lib/billGenerator.js";
 dotenv.config();
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 import Sale from "./models/Sale.js";
@@ -36,7 +36,7 @@ app.use((req, res, next) => {
       express.json()(req, res, next);
     }
   });
-//app.use(express.json());
+// //app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
 
@@ -44,7 +44,7 @@ app.use(cookieParser());
 app.use("/api/users",userRoutes);
 app.use("/api/products",productRoutes);
 app.use("/api/customers",authMiddleware,customerRoutes);
-app.post("/api/sales",createSale);
+app.use("/api/sales",authMiddleware, salesRoutes);
 app.get('/',(req,res)=>{
     res.send(`
         <h1>Welcome to the home page</h1>
@@ -63,7 +63,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
     }
   
     switch (event.type) {
-      case 'payment_intent.succeeded': {
+      case 'checkout.session.completed': {
         const session = event.data.object;
   
         const saleId = session.metadata?.saleId;
