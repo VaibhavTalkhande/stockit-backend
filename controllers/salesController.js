@@ -61,12 +61,6 @@ export const createSale = async (req,res)=>{
                     return res.status(404).json({message: `Product not found with ID: ${item._id}`});
                 }
                 
-                console.log('Product details:', {
-                    name: product.name,
-                    stock: product.stock,
-                    requestedQuantity: item.quantity
-                });
-
                 if(product.stock < item.quantity) {
                     console.log('Insufficient stock for product:', product.name);
                     return res.status(400).json({message: `Insufficient stock for product: ${product.name}`});
@@ -161,7 +155,6 @@ export const getSaleById= async (req,res)=>{
 
         const sales= await Sale.findById(req.params.id)
             .populate('customer', 'name email contact')
-            .populate('products', 'name price quantity');
         if (!sales) return res.status(404).json({message: 'Sale not found'});
         return res.status(200).json(sales);
     } catch (error) {
@@ -174,7 +167,6 @@ export const getSales = async (req,res)=>{
     try{
         const sales= await Sale.find()
             .populate('customer', 'name email contact')
-            .populate('products.productId', 'name price')
         if (sales.length === 0) return res.status(404).json({message: 'No sales found'});
         console.log(sales);
         return res.status(200).json(sales);

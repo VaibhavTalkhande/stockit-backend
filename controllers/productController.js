@@ -114,3 +114,16 @@ export const deleteProduct = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
   };
+
+export const totalProducts = async(req,res)=>{
+  try{
+    const products = await Product.find();
+    let total=0;
+    products.forEach(product=>{
+      total+=1;
+    })
+    res.status(200).json(total);
+  }catch(error){
+    res.status(500).json({message:error.message});
+  }
+}

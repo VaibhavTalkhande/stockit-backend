@@ -5,7 +5,8 @@ import {
   getProductById, 
   updateProduct, 
   deleteProduct,
-  productByName
+  productByName,
+  totalProducts
 } from '../controllers/productController.js';
 
 const router = express.Router();
@@ -16,7 +17,7 @@ router.get('/search', productByName);
 // Product CRUD routes
 router.get('/', getProducts);
 router.post('/', createProduct);
-
+router.get('/total-products',totalProducts);
 // ID based routes
 router.get('/:id', getProductById);
 router.put('/:id', updateProduct);

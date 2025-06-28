@@ -13,5 +13,5 @@ router.get('/getsales',getSales);
 router.get('/top-selling-products',getTopSellingProducts);
 router.get('/daily-sales',getDailySales);
 router.delete('/deleteSale',deleteSale);
-//router.get('/:id', getSaleById);
+router.get('/:id', getSaleById);
 export default router;
