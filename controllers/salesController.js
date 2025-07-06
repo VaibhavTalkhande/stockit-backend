@@ -6,142 +6,63 @@ import stripe from 'stripe';
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 export const createSale = async (req,res)=>{
     try {
-        console.log('Creating sale with data:', JSON.stringify(req.body, null, 2));
-        
-        // First validate the request body exists
-        if (!req.body) {
-            return res.status(400).json({message: 'Request body is required'});
-        }
-
-        // Then destructure the body
-        const {storeName, customer, products, total} = req.body;
-        
-        // Validate all required fields
+        const { storeName, customer, products, total } = req.body || {};
         if (!storeName || !customer || !products || !total) {
-            return res.status(400).json({message: 'Store name, customer, products, and total are required'});
+            return res.status(400).json({ message: 'Store name, customer, products, and total are required' });
         }
-        // console.log('Looking for existing customer:', customer.name);
-        let customerId;
-        
-        try {
-            // Check if customer exists by name
-            const existingCustomer = await Customer.findOne({name: customer.name});
-            console.log('Existing customer:', existingCustomer);
-
-            if(existingCustomer) {
-                customerId = existingCustomer._id;
-                console.log('Using existing customer:', customerId);
-            } else {
-                console.log('Creating new customer');
-                const newCustomer = new Customer({
-                    name: customer.name,
-                    email: customer.email,
-                    phone: customer.phone
-                });
-                const savedCustomer = await newCustomer.save();
-                customerId = savedCustomer._id;
-                console.log('New customer created:', customerId);
-            }
-        } catch (customerError) {
-            console.error('Error handling customer:', customerError);
-            return res.status(500).json({message: 'Error processing customer', error: customerError.message});
+        let customerInfo = await Customer.findOne({ name: customer.name });
+        if (!customerInfo) {
+            customerInfo = await Customer.create({
+                name: customer.name,
+                email: customer.email,
+                phone: customer.phone
+            });
         }
-
-        console.log('Processing products:', JSON.stringify(products, null, 2));
+        const customerId = customerInfo._id;
         const processedProducts = [];
-        
-        try {
-            for(const item of products){
-                console.log('Processing product with ID:', item._id);
-                const product = await Product.findById(item._id);
-                console.log('Found product:', product ? 'Yes' : 'No');
-                
-                if(!product) {
-                    console.log('Product not found:', item._id);
-                    return res.status(404).json({message: `Product not found with ID: ${item._id}`});
-                }
-                
-                if(product.stock < item.quantity) {
-                    console.log('Insufficient stock for product:', product.name);
-                    return res.status(400).json({message: `Insufficient stock for product: ${product.name}`});
-                }
-
-                console.log('Updating product stock');
-                product.stock -= item.quantity;
-                await product.save();
-                console.log('Product stock updated');
-
-                processedProducts.push({
-                    productId: product._id,
-                    name: product.name,
-                    quantity: item.quantity,
-                    price: product.price
-                });
+        for (const item of products) {
+            const product = await Product.findById(item._id);
+            if (!product) {
+                return res.status(404).json({ message: `Product not found with ID: ${item._id}` });
             }
-        } catch (productError) {
-            console.error('Error processing products:', productError);
-            return res.status(500).json({message: 'Error processing products', error: productError.message});
+            if (product.stock < item.quantity) {
+                return res.status(400).json({ message: `Insufficient stock for product: ${product.name}` });
+            }
+            product.stock -= item.quantity;
+            await product.save();
+            processedProducts.push({
+                productId: product._id,
+                name: product.name,
+                quantity: item.quantity,
+                price: product.price
+            });
         }
-
-        try {
-            console.log('Creating sale with data:', {
-                storeName,
-                customerId,
-                processedProducts,
-                total
-            });
-
-            const sale = new Sale({
-                storeName,
-                customer: customerId,
-                products: processedProducts,
-                totalAmount: total
-            });
-            
-            console.log('Saving sale');
-            const savedSale = await sale.save();
-            console.log('Sale saved successfully:', savedSale);
-            const session = await stripeClient.checkout.sessions.create({
-                mode: 'payment',
-                line_items: products.map(p => ({
-                  price_data: {
+        const sale = await Sale.create({
+            storeName,
+            customer: customerId,
+            products: processedProducts,
+            totalAmount: total
+        });
+        const session = await stripeClient.checkout.sessions.create({
+            mode: 'payment',
+            line_items: products.map(p => ({
+                price_data: {
                     currency: 'usd',
-                    product_data: {
-                      name: p.name,
-                    },
+                    product_data: { name: p.name },
                     unit_amount: Math.round(p.price * 100),
-                    
-                  },
-                  quantity: p.quantity,
-                })),
-                success_url: `http://localhost:3000/dashboard/orders/${savedSale._id}`,
-                cancel_url: `http://localhost:3000/cancel`,
-                metadata: {
-                  saleId: savedSale._id.toString()
-                }
-              });
-            // Optionally, you can send a bill email here
-            // await sendBillEmail(customer.email, {
-            //     date: new Date().toLocaleDateString(),
-            //     storeName: storeName,
-            //     customerName: customer.name,
-            //     items: processedProducts.map(item => ({
-            //         name: item.name, // Assuming productId has a name field
-            //         quantity: item.quantity,
-            //         price: item.price
-            //     })),
-            //     totalAmount: total
-            // });
-            await sendPaymentLink(customer.email, session.url);
-            return res.status(201).json(savedSale);
-        } catch (saleError) {
-            console.error('Error creating sale:', saleError);
-            return res.status(500).json({message: 'Error creating sale', error: saleError.message});
-        }
+                },
+                quantity: p.quantity,
+            })),
+            success_url: `${process.env.FRONTEND_URL}/dashboard/orders/${sale._id}`,
+            cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+            metadata: { saleId: sale._id.toString() }
+        });
+
+        await sendPaymentLink(customer.email, session.url);
+        return res.status(201).json(sale);
     } catch (error) {
         console.error('Error in createSale:', error);
-        console.error('Error stack:', error.stack);
-        return res.status(500).json({message: 'Server error', error: error.message});
+        return res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
 
@@ -162,7 +83,6 @@ export const getSaleById= async (req,res)=>{
     }
 }
 
-
 export const getSales = async (req,res)=>{
     try{
         const sales= await Sale.find()
@@ -174,7 +94,6 @@ export const getSales = async (req,res)=>{
         return res.status(500).json({message: 'Server error', error: error.message});
     }
 }
-
 
 export const deleteSale = async (req,res)=>{
     try{
@@ -208,7 +127,8 @@ export const getDailySales = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
   };
-  export const getTopSellingProducts = async (req, res) => {
+
+export const getTopSellingProducts = async (req, res) => {
     try {
       const result = await Sale.aggregate([
         { $unwind: "$products" },
@@ -234,4 +154,4 @@ export const getDailySales = async (req, res) => {
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
-  };
+};

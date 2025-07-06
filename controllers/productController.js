@@ -2,9 +2,7 @@ import Product from "../models/Product.js";
 
 export const createProduct = async (req,res)=>{
     const {name,description,price,image,category,stock}= req.body;
-
     try{
-
         const product = await Product.create({
             name,
             description,
@@ -15,7 +13,6 @@ export const createProduct = async (req,res)=>{
         });
         const createdProduct = await product.save();
         res.status(201).json(createdProduct);
-
     }catch(error){
         res.status(500).json({message:error.message});
     }
@@ -23,7 +20,6 @@ export const createProduct = async (req,res)=>{
 
 export const getProducts = async (req, res) => {
     try {
-      console.log('fetch kar raha product')
       const products = await Product.find({});
       res.json(products);
     } catch (error) {
@@ -42,39 +38,21 @@ export const getProductById = async (req, res) => {
   };
 
 export const productByName = async (req, res) => {
-    try {
-        console.log('Search API hit!');
-        console.log('Full request query:', req.query);
-        console.log('Full request path:', req.path);
-        
+    try {        
         const { name } = req.query;
-        
         if (!name || name.trim() === '') {
-            console.log('No name parameter provided');
             return res.status(400).json({ message: 'Name query parameter is required' });
         }
-        
-        console.log(`Searching for product with name: ${name}`);
-        
         const searchQuery = {
             name: { $regex: name, $options: 'i' }
         };
-        
-        console.log('Search query:', searchQuery);
-        
         const products = await Product.find(searchQuery);
-        
-        console.log('MongoDB query executed');
-        console.log('Products found:', products);
-        
         if (products.length > 0) {
             return res.json(products);
         } else {
-            console.log('No products found for search term:', name);
             return res.status(404).json({ message: 'No products found' });
         }
     } catch (error) {
-        console.error('Search error:', error);
         return res.status(500).json({ message: error.message });
     }
 }
@@ -117,11 +95,7 @@ export const deleteProduct = async (req, res) => {
 
 export const totalProducts = async(req,res)=>{
   try{
-    const products = await Product.find();
-    let total=0;
-    products.forEach(product=>{
-      total+=1;
-    })
+    const total = await Product.countDocuments();
     res.status(200).json(total);
   }catch(error){
     res.status(500).json({message:error.message});
