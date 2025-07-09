@@ -14,6 +14,7 @@ import { sendBillEmail } from '../lib/billGenerator.js';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
+  console.log("webhook")
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
