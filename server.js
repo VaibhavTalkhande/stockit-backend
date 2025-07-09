@@ -29,9 +29,10 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['set-cookie']
 }));
+
+// --- STRIPE WEBHOOK ROUTE (must be before express.json) ---
 app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
     const sig = request.headers['stripe-signature'];
-  
     let event;
     try {
       event = stripeClient.webhooks.constructEvent(request.body, sig, endpointSecret);
@@ -39,81 +40,64 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
       console.error('❌ Stripe signature verification failed:', err.message);
       return response.status(400).send(`Webhook Error: ${err.message}`);
     }
-  
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-  
         const saleId = session.metadata?.saleId;
         if (!saleId) {
           console.error('❌ Missing saleId in metadata');
           return response.status(400).send('Missing saleId');
         }
-  
         const sale = await Sale.findByIdAndUpdate(saleId, { paymentStatus: 'paid' }, { new: true });
         if (!sale) {
           console.error('❌ Sale not found with ID:', saleId);
           return response.status(404).send('Sale not found');
         }
-  
         const customer = await Customer.findById(sale.customer);
         if (!customer) {
           console.error('❌ Customer not found:', sale.customer);
           return response.status(404).send('Customer not found');
         }
-  
         const items = sale.products.map(p => ({
           name: p.name,
           quantity: p.quantity,
           price: p.price
         }));
-  
-        // Send bill email here
         await sendBillEmail(customer.email, {
           date: new Date().toLocaleDateString(),
           customerName: customer.name,
           items,
           totalAmount: sale.totalAmount
         });
-  
         console.log('✅ Bill sent successfully to:', customer.email);
         break;
       }
-  
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
-  
     response.status(200).send('Webhook received');
-  });
-app.use((req, res, next) => {
-    if (req.originalUrl === '/webhook') {
-      next(); // skip JSON body parser for webhook
-    } else {
-      express.json()(req, res, next);
-    }
-  });
-// //app.use(express.json());
+});
+
+// --- ALL OTHER MIDDLEWARES AND ROUTES ---
+app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
-
 
 app.use("/api/users",userRoutes);
 app.use("/api/products",productRoutes);
 app.use("/api/customers",authMiddleware,customerRoutes);
 app.use("/api/sales",authMiddleware, salesRoutes);
+
 app.get('/',(req,res)=>{
     res.send(`
         <h1>Welcome to the home page</h1>
         <p>Click <a href="/about">here</a> to go to the about page</p>`)
-})
+});
 
-  
 app.use((err,req,res,next)=>{
     console.error(err.stack);
     res.status(500).json({message:'something went wrong!'});
-})
+});
 app.listen(PORT,()=>{
     console.log(`listening at ${PORT}`);
-}
-)
+});
