@@ -49,7 +49,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
           return response.status(400).send('Missing saleId');
         }
         // Find the sale and ensure it exists
-        const sale = await Sale.findById(saleId);
+        const sale = await Sale.findById(saleId).populate("store");
         if (!sale) {
           console.error('❌ Sale not found with ID:', saleId);
           return response.status(404).send('Sale not found');
