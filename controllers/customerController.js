@@ -1,6 +1,5 @@
 import Customer from '../models/Customer.js';
 
-
 export const createCustomer = async (req, res) => {
   const { name, contact, email, address } = req.body;
   try {
