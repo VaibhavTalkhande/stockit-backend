@@ -89,7 +89,7 @@ app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
 
 app.use("/api/users",userRoutes);
-app.use("/api/products",productRoutes);
+app.use("/api/products",authMiddleware,productRoutes);
 app.use("/api/customers",authMiddleware,customerRoutes);
 app.use("/api/sales",authMiddleware, salesRoutes);
 
