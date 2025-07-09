@@ -16,12 +16,12 @@ const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 import Sale from "./models/Sale.js";
 import Customer from "./models/Customer.js";
 const app = express();
+connectDB();
 const PORT=process.env.PORT || 5000;
 const endpointSecret = process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET;
 if (!endpointSecret) {
     throw new Error('STRIPE_ENDPOINT_SECRET is not defined in environment variables');
 }
-connectDB();
 app.use(cors({
     origin: ["http://localhost:3000", "https://stockit-wine.vercel.app"],
     credentials: true,
@@ -30,13 +30,12 @@ app.use(cors({
     exposedHeaders: ['set-cookie']
 }));
 app.use((req, res, next) => {
-    if (req.originalUrl === '/webhook') {
+    if (req.originalUrl === '/api/webhook') {
       next(); // skip JSON body parser for webhook
     } else {
       express.json()(req, res, next);
     }
-  });
-// //app.use(express.json());
+});
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
 
