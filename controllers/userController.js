@@ -1,31 +1,32 @@
 import User from '../models/User.js';
+import Store from '../models/Store.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-
 const registerUser = async (req, res) => {
     console.log('user is registering');
-    const {name,email,password,storeName} = req.body;
+    const { name, email, password, storeName } = req.body;
     console.log('user data:', req.body);
-    console.log('user data:', name,email,password,storeName);
-    try{
-        console.log('user looking to register');
+    try {
         if (!name || !email || !password || !storeName) return res.status(400).json({message:'Please fill all fields'});
         if (password.length < 6) return res.status(400).json({message:'Password must be at least 6 characters'});
         const existingUser = await User.findOne({email});
         if (existingUser) return res.status(400).json({message:'User already exists'});
-        const username= name.replace(/\s+/g, '').toLowerCase();
+        // Create the store
+        const store = await Store.create({ name: storeName });
+        const username = name.replace(/\s+/g, '').toLowerCase();
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({
             username,
             email,
-            password:hashedPassword,
-            storeName
+            password: hashedPassword,
+            store: store._id
         });
-        console.log('user created:', user);
-        const userWithoutPassword = await User.findById(user._id).select('-password');
+        store.owner = user._id;
+        await store.save();
+        const userWithoutPassword = await User.findById(user._id).select('-password').populate('store', 'name');
         res.status(201).json({user: userWithoutPassword, message: 'User registered successfully'});
-    }catch (error) {
+    } catch (error) {
         console.error("Error while registering user:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -47,14 +48,12 @@ const loginUser = async(req,res)=>{
             process.env.JWT_SECRET, 
             {expiresIn: '30d'}
         );
-        
         res.cookie("token", token, {
             httpOnly: true,
             secure: true, // true for HTTPS in production
             sameSite: 'none',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
-        
         const userWithoutPassword = await User.findById(user._id).select('-password');
         res.status(200).json({user: userWithoutPassword, message:"user successfully login"})
     } catch (error) {

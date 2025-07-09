@@ -48,16 +48,21 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
           console.error('❌ Missing saleId in metadata');
           return response.status(400).send('Missing saleId');
         }
-        const sale = await Sale.findByIdAndUpdate(saleId, { paymentStatus: 'paid' }, { new: true });
+        // Find the sale and ensure it exists
+        const sale = await Sale.findById(saleId);
         if (!sale) {
           console.error('❌ Sale not found with ID:', saleId);
           return response.status(404).send('Sale not found');
         }
-        const customer = await Customer.findById(sale.customer);
+        // Find the customer and ensure it belongs to the same store
+        const customer = await Customer.findOne({ _id: sale.customer, store: sale.store });
         if (!customer) {
-          console.error('❌ Customer not found:', sale.customer);
+          console.error('❌ Customer not found or does not belong to the store:', sale.customer);
           return response.status(404).send('Customer not found');
         }
+        // Update sale payment status
+        sale.paymentStatus = 'paid';
+        await sale.save();
         const items = sale.products.map(p => ({
           name: p.name,
           quantity: p.quantity,
@@ -67,7 +72,6 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
           date: new Date().toLocaleDateString(),
           customerName: customer.name,
           items,
-          storeName:sale.storeName,
           totalAmount: sale.totalAmount
         });
         console.log('✅ Bill sent successfully to:', customer.email);

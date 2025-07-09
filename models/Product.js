@@ -8,19 +8,11 @@ const productSchema = new Schema({
     image: {type:String},
     category: { type: String, required: true },
     stock: { type: Number, default: 0 },
-    transactions: [{
-        type: Schema.Types.ObjectId,
-        ref: "Transaction",
-    }],
 }, {
     timestamps: true,
 });
 
-const transactionSchema = new Schema({
-    type: { type: String, enum: ["INCREASE","DECREASE"], required: true },
-    quantity: { type: Number, required: true },
-    date: { type: Date, default: Date.now },
-});
+
 
 const Product = mongoose.model("Product", productSchema);
 export default Product;

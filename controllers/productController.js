@@ -9,7 +9,8 @@ export const createProduct = async (req,res)=>{
             price,
             image,
             category,
-            stock
+            stock,
+            store: req.user.store
         });
         const createdProduct = await product.save();
         res.status(201).json(createdProduct);
@@ -20,7 +21,7 @@ export const createProduct = async (req,res)=>{
 
 export const getProducts = async (req, res) => {
     try {
-      const products = await Product.find({});
+      const products = await Product.find({store: req.user.store});
       res.json(products);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -29,7 +30,7 @@ export const getProducts = async (req, res) => {
 
 export const getProductById = async (req, res) => {
     try {
-      const product = await Product.findById(req.params.id);
+      const product = await Product.findOne({_id:req.params.id,store: req.user.store});
       if (product) res.json(product);
       else res.status(404).json({ message: 'Product not found' });
     } catch (error) {
@@ -44,7 +45,8 @@ export const productByName = async (req, res) => {
             return res.status(400).json({ message: 'Name query parameter is required' });
         }
         const searchQuery = {
-            name: { $regex: name, $options: 'i' }
+            name: { $regex: name, $options: 'i' },
+            store:req.user.store
         };
         const products = await Product.find(searchQuery);
         if (products.length > 0) {
@@ -60,7 +62,7 @@ export const productByName = async (req, res) => {
 export const updateProduct = async (req, res) => {
     const { name, description, price, stock, category } = req.body;
     try {
-      const product = await Product.findById(req.params.id);
+      const product = await Product.findOne( {_id: req.params.id, store: req.user.store });
       if (product) {
         product.name = name || product.name;
         product.description = description || product.description;
@@ -81,7 +83,7 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
     try {
-      const product = await Product.findById(req.params.id);
+      const product = await Product.findOne({_id: req.params.id, store: req.user.store });
       if (product) {
         await product.deleteOne();
         res.json({ message: 'Product removed' });
@@ -95,7 +97,7 @@ export const deleteProduct = async (req, res) => {
 
 export const totalProducts = async(req,res)=>{
   try{
-    const total = await Product.countDocuments();
+    const total = await Product.countDocuments({store: req.user.store });
     res.status(200).json(total);
   }catch(error){
     res.status(500).json({message:error.message});

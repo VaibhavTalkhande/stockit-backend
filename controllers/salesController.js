@@ -10,12 +10,13 @@ export const createSale = async (req,res)=>{
         if (!storeName || !customer || !products || !total) {
             return res.status(400).json({ message: 'Store name, customer, products, and total are required' });
         }
-        let customerInfo = await Customer.findOne({ name: customer.name });
+        let customerInfo = await Customer.findOne({ name: customer.name, store: req.user.store });
         if (!customerInfo) {
             customerInfo = await Customer.create({
                 name: customer.name,
                 email: customer.email,
-                phone: customer.phone
+                phone: customer.phone,
+                store: req.user.store
             });
         }
         const customerId = customerInfo._id;
@@ -38,7 +39,7 @@ export const createSale = async (req,res)=>{
             });
         }
         const sale = await Sale.create({
-            storeName,
+            store: req.user.store,
             customer: customerId,
             products: processedProducts,
             totalAmount: total
@@ -74,8 +75,8 @@ export const getSaleById= async (req,res)=>{
     }
     try{
 
-        const sales= await Sale.findById(req.params.id)
-            .populate('customer', 'name email contact')
+        const sales= await Sale.findOne({ _id: req.params.id, store: req.user.store })
+            .populate('customer', 'name email phone')
         if (!sales) return res.status(404).json({message: 'Sale not found'});
         return res.status(200).json(sales);
     } catch (error) {
@@ -85,7 +86,7 @@ export const getSaleById= async (req,res)=>{
 
 export const getSales = async (req,res)=>{
     try{
-        const sales= await Sale.find()
+        const sales= await Sale.find({ store: req.user.store })
             .populate('customer', 'name email contact')
         if (sales.length === 0) return res.status(404).json({message: 'No sales found'});
         console.log(sales);
@@ -97,7 +98,7 @@ export const getSales = async (req,res)=>{
 
 export const deleteSale = async (req,res)=>{
     try{
-        const sale= await Sale.findById(req.params.id);
+        const sale= await Sale.findById({ _id: req.params.id, store: req.user.store });
         if (!sale) return res.status(404).json({message: 'Sale not found'});
         if(sale){
             await sale.deleteOne();
@@ -113,6 +114,7 @@ export const deleteSale = async (req,res)=>{
 export const getDailySales = async (req, res) => {
     try {
       const result = await Sale.aggregate([
+        { $match: { store: req.user.store } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
