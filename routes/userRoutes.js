@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser,loginUser,getUserProfile } from "../controllers/userController.js";
+import { registerUser,logoutUser,loginUser,getUserProfile } from "../controllers/userController.js";
 import jwt from "jsonwebtoken"
 import User from "../models/User.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -11,7 +11,7 @@ router.post('/register',registerUser)
 router.post('/login',loginUser);
 
 router.get('/profile',getUserProfile)
-
+router.post('/logout', logoutUser);
 router.get('/me', authMiddleware, async(req,res)=>{
     try {
 

@@ -77,4 +77,13 @@ const getUserProfile = async(req,res)=>{
 
 }
 
-export {registerUser,loginUser,getUserProfile}
+const logoutUser = (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: true, // true for HTTPS in production
+        sameSite: 'none',
+    });
+    res.status(200).json({ message: 'Logged out successfully' });
+};
+
+export { registerUser, loginUser, getUserProfile, logoutUser };
