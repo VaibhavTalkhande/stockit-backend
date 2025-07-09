@@ -72,7 +72,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
           date: new Date().toLocaleDateString(),
           customerName: customer.name,
           items,
-          totalAmount: sale.totalAmount
+          totalAmount: sale.totalAmount,
+          storeName:sale.store.name
         });
         console.log('✅ Bill sent successfully to:', customer.email);
         break;
