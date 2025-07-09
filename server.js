@@ -29,28 +29,6 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['set-cookie']
 }));
-app.use((req, res, next) => {
-    if (req.originalUrl === '/webhook') {
-      next(); // skip JSON body parser for webhook
-    } else {
-      express.json()(req, res, next);
-    }
-  });
-// //app.use(express.json());
-app.use(express.urlencoded({extended:true}));
-app.use(cookieParser());
-
-
-app.use("/api/users",userRoutes);
-app.use("/api/products",productRoutes);
-app.use("/api/customers",authMiddleware,customerRoutes);
-app.use("/api/sales",authMiddleware, salesRoutes);
-app.get('/',(req,res)=>{
-    res.send(`
-        <h1>Welcome to the home page</h1>
-        <p>Click <a href="/about">here</a> to go to the about page</p>`)
-})
-
 app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
     const sig = request.headers['stripe-signature'];
   
@@ -108,6 +86,28 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
   
     response.status(200).send('Webhook received');
   });
+app.use((req, res, next) => {
+    if (req.originalUrl === '/webhook') {
+      next(); // skip JSON body parser for webhook
+    } else {
+      express.json()(req, res, next);
+    }
+  });
+// //app.use(express.json());
+app.use(express.urlencoded({extended:true}));
+app.use(cookieParser());
+
+
+app.use("/api/users",userRoutes);
+app.use("/api/products",productRoutes);
+app.use("/api/customers",authMiddleware,customerRoutes);
+app.use("/api/sales",authMiddleware, salesRoutes);
+app.get('/',(req,res)=>{
+    res.send(`
+        <h1>Welcome to the home page</h1>
+        <p>Click <a href="/about">here</a> to go to the about page</p>`)
+})
+
   
 app.use((err,req,res,next)=>{
     console.error(err.stack);
