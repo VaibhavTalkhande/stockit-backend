@@ -6,9 +6,9 @@ import stripe from 'stripe';
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 export const createSale = async (req,res)=>{
     try {
-        const { storeName, customer, products, total } = req.body || {};
-        if (!storeName || !customer || !products || !total) {
-            return res.status(400).json({ message: 'Store name, customer, products, and total are required' });
+        const { customer, products, total } = req.body || {};
+        if (!customer || !products || !total) {
+            return res.status(400).json({ message: 'customer, products, and total are required' });
         }
         let customerInfo = await Customer.findOne({ name: customer.name, store: req.user.store });
         if (!customerInfo) {
