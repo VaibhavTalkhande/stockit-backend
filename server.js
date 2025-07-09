@@ -51,64 +51,6 @@ app.get('/',(req,res)=>{
         <p>Click <a href="/about">here</a> to go to the about page</p>`)
 })
 
-app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
-    const sig = request.headers['stripe-signature'];
-  
-    let event;
-    try {
-      event = stripeClient.webhooks.constructEvent(request.body, sig, endpointSecret);
-    } catch (err) {
-      console.error('❌ Stripe signature verification failed:', err.message);
-      return response.status(400).send(`Webhook Error: ${err.message}`);
-    }
-  
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-  
-        const saleId = session.metadata?.saleId;
-        if (!saleId) {
-          console.error('❌ Missing saleId in metadata');
-          return response.status(400).send('Missing saleId');
-        }
-  
-        const sale = await Sale.findByIdAndUpdate(saleId, { paymentStatus: 'paid' }, { new: true });
-        if (!sale) {
-          console.error('❌ Sale not found with ID:', saleId);
-          return response.status(404).send('Sale not found');
-        }
-  
-        const customer = await Customer.findById(sale.customer);
-        if (!customer) {
-          console.error('❌ Customer not found:', sale.customer);
-          return response.status(404).send('Customer not found');
-        }
-  
-        const items = sale.products.map(p => ({
-          name: p.name,
-          quantity: p.quantity,
-          price: p.price
-        }));
-  
-        // Send bill email here
-        await sendBillEmail(customer.email, {
-          date: new Date().toLocaleDateString(),
-          customerName: customer.name,
-          items,
-          totalAmount: sale.totalAmount
-        });
-  
-        console.log('✅ Bill sent successfully to:', customer.email);
-        break;
-      }
-  
-      default:
-        console.log(`Unhandled event type ${event.type}`);
-    }
-  
-    response.status(200).send('Webhook received');
-  });
-  
 app.use((err,req,res,next)=>{
     console.error(err.stack);
     res.status(500).json({message:'something went wrong!'});
