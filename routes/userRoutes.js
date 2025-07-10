@@ -15,7 +15,7 @@ router.post('/logout', logoutUser);
 router.get('/me', authMiddleware, async(req,res)=>{
     try {
 
-        const user = await User.findById(req.user._id).select('-password');
+        const user = await User.findById(req.user._id).select('-password').populate('store', 'name');
         if (!user) return res.status(404).json({ error: "User not found" });
         res.status(200).json({ data: { user } });
     } catch (error) {
