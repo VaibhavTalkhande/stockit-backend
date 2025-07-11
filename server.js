@@ -8,13 +8,13 @@ import customerRoutes from "./routes/customerRoutes.js";
 import connectDB from "./lib/db.js";
 import { authMiddleware } from "./middleware/authMiddleware.js";
 import cookieParser from "cookie-parser";
-import { createSale } from "./controllers/salesController.js";
 import stripe from "stripe";
 import { sendBillEmail } from "./lib/mailhandler.js";
 dotenv.config();
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 import Sale from "./models/Sale.js";
 import Customer from "./models/Customer.js";
+import aiRoutes from "./routes/aiRoutes.js";
 const app = express();
 const PORT=process.env.PORT || 5000;
 const endpointSecret = process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET;
@@ -82,7 +82,6 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
     response.status(200).send('Webhook received');
 });
 
-// --- ALL OTHER MIDDLEWARES AND ROUTES ---
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
@@ -91,6 +90,7 @@ app.use("/api/users",userRoutes);
 app.use("/api/products",authMiddleware,productRoutes);
 app.use("/api/customers",authMiddleware,customerRoutes);
 app.use("/api/sales",authMiddleware, salesRoutes);
+app.use("/api/ai", authMiddleware, aiRoutes);
 
 app.get('/',(req,res)=>{
     res.send(`

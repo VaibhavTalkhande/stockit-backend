@@ -8,7 +8,7 @@ export const createCustomer = async (req, res) => {
       email,
       address,
       phone,
-      store:req.user.schema
+      store: req.user.store
     });
     const savedCustomer = await customer.save();
     res.status(201).json(savedCustomer);
@@ -28,7 +28,20 @@ export const getCustomers = async (req, res) => {
 
 export const getCustomerById = async (req, res) => {
   try {
-    const customer = await Customer.findOne({ _id: req.params.id, store: req.user.store });
+    const customer = await Customer.findOne({ _id: req.params.id, store: req.user.store })
+      .populate({
+        path: 'purchases.saleId',
+        model: 'Sale'
+      });
+    console.log('Fetched customer:', customer);
+    if (customer) {
+      console.log('Customer purchases:', customer.purchases);
+    }
+    let purchases = [];
+    if (customer && customer.purchases && customer.purchases.length > 0) {
+      purchases = customer.purchases.map(p => p.saleId).filter(Boolean);
+    }
+    console.log(customer.purchases)
     if (customer) res.json(customer);
     else res.status(404).json({ message: 'Customer not found' });
   } catch (error) {
@@ -58,7 +71,8 @@ export const updateCustomer = async (req, res) => {
 
 export const deleteCustomer = async (req, res) => {
   try {
-    const customer = await Customer.findByOne({ _id: req.params.id, store: req.user.store });
+    console.log("delete customer "+ req.params.id)
+    const customer = await Customer.findOne({ _id: req.params.id, store: req.user.store });
     if (customer) {
       await customer.deleteOne();
       res.json({ message: 'Customer deleted' });

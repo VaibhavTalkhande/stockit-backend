@@ -1,16 +1,17 @@
 import express from "express";
-import { registerUser,logoutUser,loginUser,getUserProfile,forgotPassword,resetPassword } from "../controllers/userController.js";
+import { registerUser,logoutUser,loginUser,getUserProfile,updateUserProfile,forgotPassword,resetPassword } from "../controllers/userController.js";
 import jwt from "jsonwebtoken"
 import User from "../models/User.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 const router= express.Router();
 
 
-router.post('/register',registerUser)
+router.post('/register',registerUser);
 
 router.post('/login',loginUser);
 
-router.get('/profile',getUserProfile)
+router.get('/profile',getUserProfile);
+router.post('update-profile',updateUserProfile);
 router.post('/logout', logoutUser);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);

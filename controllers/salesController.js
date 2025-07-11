@@ -11,6 +11,7 @@ export const createSale = async (req,res)=>{
             return res.status(400).json({ message: 'customer, products, and total are required' });
         }
         let customerInfo = await Customer.findOne({ name: customer.name, store: req.user.store });
+        console.log('Customer found:', customerInfo);
         if (!customerInfo) {
             customerInfo = await Customer.create({
                 name: customer.name,
@@ -18,6 +19,7 @@ export const createSale = async (req,res)=>{
                 phone: customer.phone,
                 store: req.user.store
             });
+            console.log('Customer created:', customerInfo);
         }
         const customerId = customerInfo._id;
         const processedProducts = [];
@@ -44,6 +46,12 @@ export const createSale = async (req,res)=>{
             products: processedProducts,
             totalAmount: total
         });
+        console.log('Sale created:', sale);
+        // Add sale to customer's purchases
+        customerInfo.purchases.push({ saleId: sale._id, date: sale.date });
+        console.log('Purchases after push:', customerInfo.purchases);
+        await customerInfo.save();
+        console.log('Customer after save:', await Customer.findById(customerInfo._id));
         const session = await stripeClient.checkout.sessions.create({
             mode: 'payment',
             line_items: products.map(p => ({
@@ -76,7 +84,7 @@ export const getSaleById= async (req,res)=>{
     try{
 
         const sales= await Sale.findOne({ _id: req.params.id, store: req.user.store })
-            .populate('customer', 'name email phone')
+            .populate('customer', 'name email phone').populate('store','name')
         if (!sales) return res.status(404).json({message: 'Sale not found'});
         return res.status(200).json(sales);
     } catch (error) {

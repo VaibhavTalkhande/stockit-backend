@@ -127,4 +127,48 @@ const resetPassword = async (req, res) => {
     }
 };
 
-export { registerUser, loginUser, getUserProfile, logoutUser, forgotPassword, resetPassword };
+const updateUserProfile = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const { username, email, storeName } = req.body;
+
+        const user = await User.findById(userId).populate('store');
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (username && username !== user.username) {
+            user.username = username;
+        }
+
+        if (email && email !== user.email) {
+            const existing = await User.findOne({ email });
+            if (existing && existing._id.toString() !== user._id.toString()) {
+                return res.status(400).json({ message: "Email already in use" });
+            }
+            user.email = email;
+        }
+
+        if (storeName && user.store) {
+            user.store.name = storeName;
+            await user.store.save();
+        }
+
+        await user.save();
+
+        const updatedUser = await User.findById(user._id).select('-password').populate('store', 'name');
+
+        res.status(200).json({ message: "Profile updated", user: updatedUser });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+
+
+
+export { registerUser, loginUser, getUserProfile, logoutUser, forgotPassword, resetPassword ,updateUserProfile};
