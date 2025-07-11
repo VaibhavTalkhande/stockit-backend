@@ -10,7 +10,7 @@ import { authMiddleware } from "./middleware/authMiddleware.js";
 import cookieParser from "cookie-parser";
 import { createSale } from "./controllers/salesController.js";
 import stripe from "stripe";
-import { sendBillEmail } from "./lib/billGenerator.js";
+import { sendBillEmail } from "./lib/mailhandler.js";
 dotenv.config();
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 import Sale from "./models/Sale.js";
@@ -23,7 +23,7 @@ if (!endpointSecret) {
 }
 connectDB();
 app.use(cors({
-    origin: ["http://localhost:3000", "https://stockit-wine.vercel.app"],
+    origin: ["http://localhost:3000", `${process.env.FRONTEND_URL}`],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

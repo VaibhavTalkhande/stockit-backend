@@ -2,6 +2,8 @@ import User from '../models/User.js';
 import Store from '../models/Store.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { sendPasswordResetEmail } from '../lib/mailhandler.js';
 
 const registerUser = async (req, res) => {
     console.log('user is registering');
@@ -80,10 +82,49 @@ const getUserProfile = async(req,res)=>{
 const logoutUser = (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
-        secure: true, // true for HTTPS in production
+        secure: true, 
         sameSite: 'none',
     });
     res.status(200).json({ message: 'Logged out successfully' });
 };
 
-export { registerUser, loginUser, getUserProfile, logoutUser };
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(200).json({ message: 'If that email is registered, a reset link has been sent.' });
+    
+        const token = crypto.randomBytes(32).toString('hex');
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = Date.now() + 3600000;
+        await user.save();
+        // Construct reset link
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+        await sendPasswordResetEmail(email, resetLink);
+        res.status(200).json({ message: 'If that email is registered, a reset link has been sent.' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    const { token, email, password } = req.body;
+    if (!token || !email || !password) return res.status(400).json({ message: 'Token, email, and new password are required' });
+    try {
+        const user = await User.findOne({ email, resetPasswordToken: token, resetPasswordExpires: { $gt: Date.now() } });
+        if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
+        if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        user.password = await bcrypt.hash(password, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+        res.status(200).json({ message: 'Password has been reset successfully' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+export { registerUser, loginUser, getUserProfile, logoutUser, forgotPassword, resetPassword };

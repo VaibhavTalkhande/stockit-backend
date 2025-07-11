@@ -1,7 +1,7 @@
 import Sale from '../models/Sale.js';
 import Customer from '../models/Customer.js';
 import Product from '../models/Product.js';
-import { sendBillEmail, sendPaymentLink } from '../lib/billGenerator.js';
+import { sendBillEmail, sendPaymentLink } from '../lib/mailhandler.js';
 import stripe from 'stripe';
 const stripeClient = stripe(process.env.STRIPE_SECRET_KEY);
 export const createSale = async (req,res)=>{

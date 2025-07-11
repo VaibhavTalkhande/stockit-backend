@@ -8,7 +8,8 @@ const userSchema = new Schema({
     store: { type: Schema.Types.ObjectId, ref: "Store", required: true },
     phone: { type: String },
     address: { type: String },
-    image: { type: String },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
 },
 {
     timestamps: true,
