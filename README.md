@@ -22,9 +22,9 @@ deployed on render
 - **Customer Management:** CRUD operations, purchase history, customer insights.
 - **Sales Management:** Create sales, track products sold, payment status, Stripe integration.
 - **Billing & Email:** Generate and email bills/receipts to customers.
-- **Payment Integration:** Stripe Checkout for online payments, payment link resending.
+- **Payment Integration:** Stripe Checkout ,stripe webhook for online payments.
 - **AI Business Suggestions:** Uses Gemini API to analyze store data and provide actionable business advice.
-- **Role-based Access:** Auth middleware protects sensitive routes.
+-
 - **Analytics:** Daily sales, top-selling products, and more.
 
 ---
