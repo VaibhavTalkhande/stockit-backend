@@ -69,9 +69,7 @@ Now, generate 5-10 actionable suggestions in this format.
           }
         },
       });
-      console.log(response.text);
       const suggestions= response.text;
-      console.log(JSON.parse(suggestions))
     res.status(200).json({ suggestions });
   } catch (error) {
     console.error('AI suggestion error:', error);
