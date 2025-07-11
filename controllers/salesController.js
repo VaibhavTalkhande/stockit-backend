@@ -62,8 +62,9 @@ export const createSale = async (req,res)=>{
                 },
                 quantity: p.quantity,
             })),
-            success_url: `${process.env.FRONTEND_URL}/dashboard/orders/${sale._id}`,
-            cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+            //only needed if using dashboard
+            // success_url: `${process.env.FRONTEND_URL}/`,
+            // cancel_url: `${process.env.FRONTEND_URL}/cancel`,
             metadata: { saleId: sale._id.toString() }
         });
 
